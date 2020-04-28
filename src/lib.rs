@@ -54,6 +54,12 @@ impl Universe {
 
         count
     }
+
+    fn make_random_cells(width: usize, height: usize) -> Vec<u8> {
+        (0..width * height / 8)
+            .map(|_index| (random() * 255f64) as u8)
+            .collect()
+    }
 }
 
 #[wasm_bindgen]
@@ -106,11 +112,13 @@ impl Universe {
     }
 
     pub fn new(width: usize, height: usize) -> Universe {
-        let cells = (0..width * height / 8)
-            .map(|_index| (random() * 255f64) as u8)
-            .collect();
+        let cells = Universe::make_random_cells(width, height);
 
         Universe { cells, width, height }
+    }
+
+    pub fn reset(&mut self) {
+        self.cells = Universe::make_random_cells(self.width, self.height)
     }
 
     pub fn width(&self) -> usize {
@@ -119,5 +127,43 @@ impl Universe {
 
     pub fn height(&self) -> usize {
         self.height
+    }
+
+    pub fn get_gl_cells_buffer(&self) -> Vec<f32> {
+        (0..self.height())
+            .flat_map(|row| {
+                (0..self.width())
+                    .map(move |col| (self.get_cell(row, col), row, col))
+                    .filter(|(cell, _, _)| *cell == Cell::Alive)
+                    .flat_map(|(_, row, col)| {
+                        let x = ((col as f32 + 0.5) * 2.0) / self.width() as f32 - 1.0;
+                        let y = ((row as f32 + 0.5) * 2.0) / self.height() as f32 - 1.0;
+
+                        vec![x, y]
+                    })
+            })
+            .collect()
+    }
+
+    pub fn get_gl_line_buffer(&self) -> Vec<f32> {
+        let vertical_lines = (1..self.width()).map(|col| {
+            let x = col as f32 * 2.0 / self.width() as f32 - 1.0;
+
+            ((x, -1.0), (x, 1.0))
+        });
+
+        let horizontal_lines = (1..self.height()).map(|row| {
+            let y = row as f32 * 2.0 / self.height() as f32 - 1.0;
+
+            ((-1.0, y), (1.0, y))
+        });
+
+        vertical_lines.chain(horizontal_lines)
+            .flat_map(|((px1, py1), (px2, py2))| vec![px1, py1, px2, py2])
+            .collect()
+    }
+
+    pub fn get_gl_line_vertex_count(&self) -> usize {
+        return ((self.width() - 1) + (self.height - 1)) * 2;
     }
 }
