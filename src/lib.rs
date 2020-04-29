@@ -55,9 +55,35 @@ impl Universe {
         count
     }
 
+    fn get_cell_memory_size(width: usize, height: usize) -> usize {
+        let cells_amount = width * height;
+        let size = cells_amount / 8;
+
+        if cells_amount % 8 == 0 {
+            size
+        } else {
+            size + 1
+        }
+    }
+
     fn make_random_cells(width: usize, height: usize) -> Vec<u8> {
-        (0..width * height / 8)
+        (0..Universe::get_cell_memory_size(width, height))
             .map(|_index| (random() * 255f64) as u8)
+            .collect()
+    }
+
+    pub fn set_cells(&mut self, cells: &[(usize, usize)]) {
+        for (row, col) in cells.iter().cloned() {
+            self.set_cell(row, col, Cell::Alive);
+        }
+    }
+
+    pub fn get_cells(&self) -> Vec<Cell> {
+        (0..self.height())
+            .flat_map(|row| {
+                (0..self.width())
+                    .map(move |col| self.get_cell(row, col))
+            })
             .collect()
     }
 }
@@ -70,8 +96,8 @@ impl Universe {
         if self.cells[index] & flag == 0 { Cell::Dead } else { Cell::Alive }
     }
 
-    pub fn set_cell(&mut self, row: usize, column: usize, cell: Cell) {
-        let (index, flag) = self.get_accessor(row, column);
+    pub fn set_cell(&mut self, row: usize, col: usize, cell: Cell) {
+        let (index, flag) = self.get_accessor(row, col);
 
         match cell {
             Cell::Alive => self.cells[index] |= flag,
@@ -111,8 +137,14 @@ impl Universe {
         self.cells = next.cells;
     }
 
-    pub fn new(width: usize, height: usize) -> Universe {
+    pub fn new_random_filled(width: usize, height: usize) -> Universe {
         let cells = Universe::make_random_cells(width, height);
+
+        Universe { cells, width, height }
+    }
+
+    pub fn new(width: usize, height: usize) -> Universe {
+        let cells = vec![0; Universe::get_cell_memory_size(width, height)];
 
         Universe { cells, width, height }
     }

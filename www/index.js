@@ -8,7 +8,7 @@ const CELL_SIZE = 1; // px
 const width = 380 * 3;
 const height = 250 * 3;
 // Construct the universe, and get its width and height.
-const universe = Universe.new(width, height);
+const universe = Universe.new_random_filled(width, height);
 
 // Give the canvas room for all of our cells and a 1px border
 // around each of them.
